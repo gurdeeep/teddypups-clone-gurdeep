@@ -29,8 +29,25 @@ function seoFiles(): Plugin {
   };
 }
 
+/**
+ * Puts the page-transition blanket (quilt, running puppy, tagline) into the
+ * HTML itself, already covering the screen. Visitors see it as soon as the
+ * stylesheet arrives instead of a blank page while the JavaScript loads; React
+ * then replaces it with its own copy and lifts it.
+ */
+function firstPaintCurtain(): Plugin {
+  return {
+    name: 'first-paint-curtain',
+    transformIndexHtml(html) {
+      const shell = readFileSync('src/templates/shell-head.html', 'utf8');
+      const curtain = shell.slice(0, shell.indexOf('<a ')).replace('data-state="intro"', 'data-state="covered"');
+      return html.replace('<!-- first-paint-curtain -->', curtain);
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), seoFiles()],
+  plugins: [react(), seoFiles(), firstPaintCurtain()],
   build: {
     rollupOptions: {
       output: {
