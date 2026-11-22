@@ -7,9 +7,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // Keep the libraries in their own long-lived chunk so app changes do not bust their cache.
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'motion', 'lenis', 'html-react-parser'],
-        },
+        manualChunks: (id) => (id.includes('node_modules') ? 'vendor' : undefined),
       },
     },
   },

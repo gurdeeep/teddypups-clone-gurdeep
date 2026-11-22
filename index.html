@@ -36,7 +36,22 @@
       type="font/woff2"
       crossorigin
     />
+    <style>
+      /* Shown until the app mounts: the same quilt pattern as the page-transition blanket. */
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 95;
+        background:
+          repeating-linear-gradient(45deg, transparent 0 46px, #2a170e12 46px 48px),
+          repeating-linear-gradient(-45deg, transparent 0 46px, #2a170e12 46px 48px),
+          radial-gradient(circle at 50% 46%, #fffdf8 0, transparent 60%), #fbe3b4;
+      }
+    </style>
     <script type="module" src="/src/main.tsx"></script>
   </head>
-  <body></body>
+  <body>
+    <div id="boot"></div>
+    <noscript>TeddyPups U.A.E. needs JavaScript to display this site.</noscript>
+  </body>
 </html>

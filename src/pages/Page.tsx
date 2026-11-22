@@ -12,7 +12,7 @@ import breedData from '../data/breeds.json';
 import enquiryOptions from '../data/enquiry-options.json';
 import familyPhotos from '../data/families.json';
 import faqData from '../data/faq.json';
-import homeFamilyPhotos from '../data/home-families.json';
+import homeFamilyOrder from '../data/home-families.json';
 import puppyData from '../data/puppies.json';
 import { ChatClip, ChatStory } from '../home/ChatStory';
 import { HeroLineup } from '../home/HeroLineup';
@@ -28,6 +28,9 @@ const available = puppies.filter((pup) => pup.status === 'available');
 const breeds = breedData as Breed[];
 const faqs = faqData as Faq[];
 const options = enquiryOptions as EnquiryOption[];
+const families = familyPhotos as Media[];
+/** The homepage shows the same family photos in its own curated order. */
+const homeFamilies = (homeFamilyOrder as string[]).map((id) => families.find((photo) => photo.id === id)!);
 
 /**
  * One route's content: the saved template for that page, with its interactive
@@ -37,7 +40,7 @@ export function Page({ pathname }: { pathname: string }) {
   const html = pageTemplate(pathname);
   const isHome = pathname === '/';
   const puppy = puppies.find((pup) => pathname === `/puppies/${pup.slug}`);
-  const photos = (isHome ? homeFamilyPhotos : familyPhotos) as Media[];
+  const photos = isHome ? homeFamilies : families;
   const { open, viewer } = usePhotoViewer(photos);
 
   const content = useMemo(() => {
