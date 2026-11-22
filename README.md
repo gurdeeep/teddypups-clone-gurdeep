@@ -1,111 +1,186 @@
-# TeddyPups — React + TypeScript website clone
+# TeddyPups clone
 
-Deployed URL of Clone:  https://warm-cucurucho-edd5f0.netlify.app/
+A clone of [puppy.instabizweb.com](https://puppy.instabizweb.com/), built with React, TypeScript and Vite for the Insta Biz Web technical assignment.
 
-Reference: https://puppy.instabizweb.com/
+- **Live site:** https://warm-cucurucho-edd5f0.netlify.app/
+- **Reference:** https://puppy.instabizweb.com/
 
-## Run locally
+| Desktop (1440px)                               | Mobile (390px)                               |
+| ---------------------------------------------- | -------------------------------------------- |
+| ![Home page on desktop](docs/home-desktop.jpg) | ![Home page on mobile](docs/home-mobile.jpg) |
 
-Install Node.js 22.12+ (or Node.js 24 LTS). Extract this ZIP, open the `puppy-clone` folder in a terminal, and run:
+## What is in it
+
+Seven main pages, 42 puppy profile pages and a 404 page (50 routes in total):
+
+| Route             | What it has                                                                                                       |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `/`               | Hero with rotating puppy line-up, pinned door showcase, chat story, family photo wall, FAQ teaser, walking mascot |
+| `/puppies`        | Filterable catalogue (origin, breed, gender) with the filters stored in the URL                                   |
+| `/puppies/:slug`  | Photo and video gallery, full-screen viewer, enquiry form, reading-progress ribbon                                |
+| `/happy-families` | 64-photo wall with a full-screen viewer                                                                           |
+| `/how-it-works`   | Tabbed "two ways home" journeys, scroll-driven flight path                                                        |
+| `/faq`            | Searchable notice board of questions                                                                              |
+| `/contact`        | Fill-in-the-blanks letter form with a posting animation                                                           |
+| `/gone-home`      | Puppies that have already been rehomed                                                                            |
+
+Shared across pages: sticky header that hides on scroll down, mobile menu, page-transition blanket, smooth wheel scrolling, cursor paw trail, footer, and a WhatsApp / Call bar on mobile.
+
+## Tech stack
+
+| Piece                 | Why                                                                                                                              |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **React 19**          | Component model for the stateful parts (filters, galleries, forms) while most of each page stays static markup.                  |
+| **TypeScript**        | Strict types for the data (puppies, media, FAQs) and component props; `tsc` runs as part of every build.                         |
+| **Vite 7**            | Fast dev server, and it code-splits each page template into its own chunk with one `import.meta.glob` call.                      |
+| **Motion**            | The reference uses it. Using the same springs, layout animations and frame loop was the only reliable way to match its movement. |
+| **Lenis**             | The reference's smooth-scroll library; same settings (`lerp: 0.1`, `wheelMultiplier: 0.85`).                                     |
+| **html-react-parser** | Turns the saved page markup into React elements and lets me swap individual elements for live components.                        |
+| **Prettier**          | One formatting style across the codebase (`npm run format`).                                                                     |
+| **Netlify**           | Static hosting with Git-based deploys, SPA redirects and an image CDN.                                                           |
+
+There is no CSS framework dependency. `src/reference.css` is the reference site's compiled stylesheet (it was built with Tailwind), used as-is so spacing, colours and breakpoints are identical.
+
+## How it is built
+
+The reference is a server-rendered Next.js site. I do not have its source, so the clone is put together from three layers:
+
+1. **Captured markup and styles.** Each page's rendered HTML is saved in `src/templates/`, and the compiled stylesheet in `src/reference.css`. This guarantees the layout matches at every breakpoint.
+2. **A React layer I wrote** (`src/`, about 3,200 lines of TypeScript). It renders the templates, replaces the interactive parts with real components, and handles routing, transitions, scrolling, forms and metadata.
+3. **The mascot's animation engine**, `src/motion/reference-motion.js`. This is the reference's own compiled puppy code (pose maths, walk cycle, eye and ear physics), kept verbatim with a small module loader around it. Everything that _drives_ it (`PupBuddy.tsx`, the scroll state it reads) is mine.
+
+`src/Template.tsx` is the join between layers 1 and 2: it walks a template and asks a "slot" function about each element, which can return a component to render in its place.
+
+## Folder structure
+
+```
+.
+├── index.html               Entry HTML: meta tags, font preloads, first-paint cover
+├── netlify.toml             Build command, SPA redirect, cache headers, image CDN switch
+├── vite.config.ts
+├── docs/                    README screenshots
+├── public/
+│   ├── media/               Puppy and family photos, videos, posters
+│   ├── brand/, cursor/      Logo and custom cursor
+│   └── _next/static/media/  Web fonts (path kept so the stylesheet's @font-face URLs resolve)
+└── src/
+    ├── main.tsx             Mounts the app into <body>
+    ├── App.tsx              Shell + current page; scroll reset; link handling
+    ├── Template.tsx         HTML template → React elements, with component slots
+    ├── reference.css        Compiled stylesheet from the reference
+    ├── types.ts             Media, Puppy, Faq …
+    ├── shell/               Things present on every page
+    │   ├── Shell.tsx            Header, nav, mobile menu, footer
+    │   ├── RouteCurtain.tsx     Page-transition blanket state machine
+    │   ├── SmoothScroll.tsx     Lenis setup and in-page anchor links
+    │   ├── useHeaderBehavior.ts Hide on scroll down, show on scroll up
+    │   └── PawTrail.tsx         Canvas paw prints behind the cursor
+    ├── pages/
+    │   ├── Page.tsx             Picks the template for a route and fills its slots
+    │   └── NotFound.tsx         404 poster
+    ├── home/                Homepage-only pieces
+    │   ├── HeroLineup.tsx       Puppies ducking and popping up behind the quilt
+    │   ├── MeetShowcase.tsx     Pinned, horizontally scrolling doors
+    │   └── ChatStory.tsx        Scroll-stepped WhatsApp conversation
+    ├── components/          Reusable interactive components
+    │   ├── PuppyBrowser.tsx     Catalogue filters
+    │   ├── PuppyGallery.tsx     Profile gallery
+    │   ├── PhotoViewer.tsx      Full-screen photo viewer
+    │   ├── NoticeBoard.tsx      FAQ board with search
+    │   ├── EnquiryForm.tsx      Profile enquiry form
+    │   ├── LetterForm.tsx       Contact letter form
+    │   ├── JourneyTabs.tsx      How-it-works tabs
+    │   ├── PupBuddy.tsx         The mascot's behaviour
+    │   └── MediaImage.tsx       Photo with blur-up placeholder
+    ├── lib/                 Non-visual helpers
+    │   ├── router.ts            History API router and lazy template loading
+    │   ├── enquiry.ts           Form validation and submit
+    │   ├── image.ts             Responsive image URLs (Netlify Image CDN)
+    │   ├── useReveal.ts         Scroll-reveal
+    │   ├── useScrollEffects.ts  Flight path and profile ribbon
+    │   └── useDocumentMeta.ts   Per-route title, description, social tags, JSON-LD
+    ├── motion/              Mascot animation engine (from the reference) and its types
+    ├── templates/           Saved markup: one file per page, plus header and footer
+    └── data/                JSON: puppies, family photos, FAQs, breeds, route table
+```
+
+## Run it locally
+
+Requires Node.js 22 or newer.
 
 ```bash
-npm ci
-npm run dev
+git clone <repo-url>
+cd <repo-folder>
+npm install
+npm run dev       # dev server at http://localhost:5173
 ```
-
-Open the local URL printed by Vite. Do not open `index.html` directly from the filesystem.
-
-For production:
 
 ```bash
-npm run build
-npm run preview
+npm run build     # type-check, then production build into dist/
+npm run preview   # serve dist/ at http://localhost:4173
+npm run format    # Prettier
 ```
 
-Upload the generated `dist/` folder to a static host. Configure SPA fallback to `index.html` so directly opening a puppy profile works. Example Nginx configuration is in `deployment/nginx.conf`.
+No environment variables are needed. `.env.example` documents the one optional setting (see "Forms" below).
 
-## Included
+## Implementation decisions and challenges
 
-- React 19, TypeScript, Vite and a reproducible npm lockfile.
-- Seven main pages: Home, Available puppies, Happy families, How it works, FAQ, Contact and Gone home.
-- All 42 puppy profiles: 15 available and 27 gone home.
-- All 64 happy-family photos, puppy photos, videos, posters and fonts stored locally.
-- Original public page text, layout markup, SVG illustrations, masks, paper textures, colors, borders and responsive CSS.
-- Typed React catalogue filters, clear filters, result counts and URL query state.
-- Photo/video galleries with thumbnails, fullscreen lightbox, keyboard arrows, Escape and swipe navigation.
-- FAQ search, empty state and folding answers.
-- Local/imported process tabs, mobile menu, page curtains and scroll reveal animations.
-- Rotating hero puppies, door showcase, chat progression and animated letter form.
-- One shared homepage puppy uses the reference animation controller: actual leg gait, smooth turning, spring motion, curved transitions, hopping behind foreground objects, natural blinking and basket settling. Scrolling upward reverses the journey.
-- Reference-matched desktop cursor paw-print trail: alternating pads, 46px steps, 600ms hold and 400ms fade.
-- Native form validation, phone validation, submission/error states and optional API integration.
-- Original WhatsApp, phone, email, social and map destinations retained.
+**1. Reusing the reference's markup instead of rewriting it.**
+Hand-writing 50 pages of illustrated SVG-heavy markup would have cost days and still drifted from the original. Saving the rendered HTML and rendering it through `html-react-parser` gave an exact layout quickly, and left the time for behaviour. The trade-off is that the templates are not pleasant to edit by hand, and content changes on the reference have to be re-synced.
 
-## Enquiry forms: demo mode by default
+**2. The layout matched but the behaviour did not.**
+My first version looked right in screenshots, yet scrolling felt different. To find out why, I wrote a script that loads both sites in a headless browser, scrolls them with identical wheel input, and at each step compares every element's data attributes, opacity, transform and position. It surfaced what screenshots hid: no smooth scrolling, a header that never hid, a chat section that showed everything at once, different reveal timing, and the walking puppy mounted in the wrong part of the DOM. I then rewrote each interactive piece to follow the reference's logic. After the rewrite the same script reports no differences beyond in-flight animations (see [TESTING.md](TESTING.md)).
 
-No submission API was supplied. The default form validates inputs, plays the animation, and explicitly displays a demo result. It does not send, store or email the enquiry. It never calls the reference website's private backend.
+**3. Smooth scrolling and animation had to share a frame.**
+The puppy, the pinned door track and the scroll position all update every frame. Running them on separate `requestAnimationFrame` loops made the puppy lag a frame behind the page. The fix was to use Motion's frame scheduler for everything: Lenis advances in the `read` step, then the springs and the puppy run in `update`.
 
-To connect your own API, copy `.env.example` to `.env.local`, set `VITE_ENQUIRY_ENDPOINT`, and restart Vite (or rebuild production).
+**4. Rendering into `<body>`.**
+The stylesheet has selectors such as `html:has(> body > .tp-curtain[data-state=intro])`. With the usual `<div id="root">` wrapper these never matched, so the intro animation was skipped. React now mounts directly into `<body>`.
 
-The form sends JSON using HTTP POST:
+**5. A bug that silently disabled smooth scrolling.**
+My metadata hook reset `<html class>` on every navigation, which wiped the classes Lenis adds to itself. Nothing errored; scrolling just stopped being smooth. The comparison script caught it because scroll positions stopped matching the reference.
 
-```json
-{
-  "name": "Customer name",
-  "phone": "+971501234567",
-  "email": "customer@example.com",
-  "area": "Dubai Marina",
-  "message": "Interested in a puppy",
-  "puppyId": "optional selection from the contact form",
-  "puppySlug": "optional profile slug",
-  "website": ""
-}
-```
+**6. Forms without a backend.**
+The reference posts enquiries to a private server action. The clone validates in the browser with the same rules and error messages, plays the same success animation, and sends nothing. Setting `VITE_ENQUIRY_ENDPOINT` makes both forms POST their fields as JSON to that URL. A hidden honeypot field catches simple bots.
 
-The API should return a 2xx response after accepting the enquiry. A non-2xx response shows an error. Add server-side validation, delivery/storage and rate limiting in your API. The `website` field is a honeypot. Vite environment values are public browser configuration; do not put credentials in them.
+**7. Refreshing a page returned 404.**
+A single-page app has one HTML file, so `/faq` does not exist on the server. `netlify.toml` rewrites every unknown path to `index.html`, and the app's own router shows the 404 poster for routes it does not know.
 
-## Editing
+**8. Image weight.**
+Next.js resizes images on the server; a static build serves the originals, which made the home page about 3.5 MB. On Netlify the app requests resized variants from Netlify Image CDN through `srcset` (`src/lib/image.ts`), using each image's original `sizes` hint. It is switched on by `VITE_IMAGE_CDN` in `netlify.toml`, so local builds still work without the CDN.
 
-- `src/main.tsx`: client routing, browser history and page transitions.
-- `src/Template.tsx`: converts static reference markup to React elements and inserts interactive components.
-- `src/components.tsx`: catalogue, galleries, FAQ note and enquiry forms.
-- `src/animations.ts`: scroll observers, pinned door track and hero photo scheduling.
-- `src/LivePagePuppies.ts`: page-mascot blinking, cursor eye tracking, tail wag and hover petting, with visibility pausing and route cleanup.
-- `src/ScrollPuppy.tsx`: homepage-only mount and route cleanup for the reference motion controller.
-- `src/motion/reference-motion.js`: isolated local reference SVG mathematics, gait/eye/ear physics and scroll choreography, using this app's React and a local requestAnimationFrame clock. No Next.js runtime or remote scripts are loaded.
-- `src/PawTrail.tsx`: mouse-only canvas paw-print trail with high-DPI support and reduced-motion handling.
-- `src/templates/`: editable page markup and inline SVG artwork. No scripts from the reference are executed. Shared header/footer are separate templates.
-- `src/data/`: puppy records, family-photo records, FAQ and route metadata.
-- `src/reference.css`: local reference styles, including responsive rules and original CSS keyframes.
-- `src/app.css`: React interaction styles and accessibility adjustments.
-- `public/media/`, `public/brand/`, `public/_next/static/media/`: local photos, videos, logo and fonts. The `_next` folder contains font assets only; this app does not require Next.js.
+**9. Bundle size.**
+All page templates were originally bundled together (2.3 MB of JavaScript). Each template is now a separate chunk loaded on first visit, and preloaded while the transition blanket is closing so navigation does not wait on the network.
 
-Change branding/contact destinations in the shared templates and `WHATSAPP` in `components.tsx`. Puppy-specific WhatsApp URLs also occur in profile templates.
+**10. Accessibility kept from the original.**
+Reduced-motion users get no blanket, no smooth scroll and no walking puppy, and all content is revealed immediately. Dialogs are native `<dialog>` elements, tabs follow the ARIA tab pattern, and form errors are announced and focused.
 
-The supplied puppy listings are a snapshot of the reference on 31 October 2026; no admin panel or live inventory backend is included.
+## Testing
 
-## Verification and fidelity
+Automated comparison against the reference, functional checks, cross-browser runs and Lighthouse results are recorded in [TESTING.md](TESTING.md).
 
-TypeScript and Vite production build passed. Browser checks covered the desktop home, catalogue filtering (Maltipoo = 6 matches), profile gallery and video lightbox, FAQ filtering, enquiry demo submission, process tabs, and a 390px responsive viewport with the mobile menu. All 218 referenced local assets were checked for existence.
+## Deployment
 
-This is a frontend reconstruction, not the original private source project. Original CSS keyframes and visual assets are retained; The puppy uses the local reference motion controller; viewport size and scroll speed affect the visible timing. Other JavaScript interactions are recreated and can differ from the reference. Exact frame-by-frame animation parity and every device/browser combination have not been certified. Live email/CRM delivery requires your API configuration.
+Hosted on Netlify, configured by [`netlify.toml`](netlify.toml):
 
-## Video movement update
+- Build command `npm run build`, publish directory `dist`, Node 22
+- SPA fallback redirect so deep links and refreshes work
+- One-year immutable caching for fingerprinted assets and fonts
+- `VITE_IMAGE_CDN=netlify` to serve resized images
 
-The supplied 37.374-second, 60fps recording was inspected as a sequence: hero peek (0–4s), walking floor and direction changes (6–10s), scene-to-scene movement (10–20s), basket settling (22s), reverse travel (24–34s), and return to the hero (36s). The old static pose interpolation has been replaced by the reference gait and scroll controller. Pinned showcase travel now also uses the reference spring values and door-opening threshold.
+With the repository connected in Netlify, every push to `main` builds and deploys automatically.
 
-## How it works — Korea to Dubai flight
+## AI tools used
 
-The delivery-section plane now follows the original dotted SVG route as the page scrolls. Scrolling down advances Korea → Dubai; scrolling up reverses the same path. The reference mapping is start at 95% viewport to end at 25%, with arc-length position sampling, tangent rotation and the original fade-in. Reduced-motion users see a stationary plane at 62% route progress. Existing puppy, cursor and gallery features are preserved. Implementation: `src/FlightMotion.ts`.
+AI coding assistants wrote a large share of this code under my direction: capturing the reference, the first React version, and then the audit, comparison tooling and behaviour rewrite described above. The tools, what each was used for, and the exact prompts are listed in [AI_PROMPTS.md](AI_PROMPTS.md).
 
-## Page puppy eye and tail update
+## Known differences from the reference
 
-The single mascots on Puppies, Happy families, FAQ and Contact, plus both How it works mascots, now use the reference local SVG animation driver. Eyes track the mouse and blink naturally; tails wag continuously. Hovering closes the eyes into the happy expression and increases the wag; leaving restores the normal eyes. Original sitting/bowing poses and facing directions remain intact. Offscreen mascots pause, route changes clean up listeners, and reduced-motion preferences retain the static accessible fallback. Homepage travel, footer hover, cursor prints and the Korea–Dubai flight remain included.
+- Enquiry forms do not send anything unless an endpoint is configured.
+- Puppy listings are a snapshot; there is no CMS or admin behind them.
+- No `sitemap.xml`.
+- The mascot's animation engine is the reference's compiled code rather than a rewrite.
 
-## Puppy profile brown scroll ribbon
+## Credits
 
-All puppy detail pages now update the existing brown bookmark ribbon using the reference scroll offsets: start at 30% viewport and finish when the ribbon bottom reaches the viewport bottom. Scrolling up reverses the fill. Existing sticky positioning, gradient, notched tip and mobile visibility rules are unchanged. Implementation: `src/animations.ts`.
-
-## Homepage plane scroll update
-
-The existing homepage Korea–Dubai plane now uses the same scroll controller as How it works. Scrolling down advances along the dotted SVG path; scrolling up reverses it. Tangent rotation, fade, resize handling, reduced-motion fallback and route cleanup are shared. Only the flight hook route guard changed; all markup, styles, media and prior features remain unchanged.
+Design, artwork, copy and photos belong to the owners of the reference site. This project is an assignment submission, not a commercial product.
