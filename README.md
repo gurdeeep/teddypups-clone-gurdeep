@@ -2,7 +2,7 @@
 
 A clone of [puppy.instabizweb.com](https://puppy.instabizweb.com/), built with React, TypeScript and Vite for the Insta Biz Web technical assignment.
 
-- **Live site:** https://warm-cucurucho-edd5f0.netlify.app/
+- **Live site:** https://teddypups-clone.netlify.app/
 - **Reference:** https://puppy.instabizweb.com/
 
 | Desktop (1440px)                               | Mobile (390px)                               |
@@ -96,6 +96,7 @@ The reference is a server-rendered Next.js site. I do not have its source, so th
     │   └── MediaImage.tsx       Photo with blur-up placeholder
     ├── lib/                 Non-visual helpers
     │   ├── router.ts            History API router and lazy template loading
+    │   ├── usePrefetch.ts       Prefetches the pages linked from what is on screen
     │   ├── enquiry.ts           Form validation and submit
     │   ├── image.ts             Responsive image URLs (Netlify Image CDN)
     │   ├── useReveal.ts         Scroll-reveal
@@ -155,9 +156,12 @@ Next.js resizes images on the server; a static build serves the originals, which
 Firefox logged "image corrupt or truncated" during cross-browser testing. Eleven JPEGs had been truncated when the site was first captured (one held 20 KB of a 225 KB file) and were rendering partly grey. Chrome had displayed them without complaint, so only testing in a second engine exposed it. I re-downloaded them and verified each file ends with a JPEG end marker.
 
 **10. Bundle size.**
-All page templates were originally bundled together (2.3 MB of JavaScript). Each template is now a separate chunk loaded on first visit, and preloaded while the transition blanket is closing so navigation does not wait on the network.
+All page templates were originally bundled together (2.3 MB of JavaScript). Each template is now a separate chunk loaded on first visit.
 
-**11. Accessibility kept from the original.**
+**11. Navigation was slower on the live site than locally.**
+Splitting the pages meant a click had to download the next page first. Locally that was instant; on the deployed site the blanket stayed down for 1.5 to 3 seconds, against about 1 second on the reference. Next.js avoids this by prefetching the pages linked from what is on screen, so `src/lib/usePrefetch.ts` does the same: links in view are fetched two at a time once the blanket has lifted, and a hovered, touched or focused link is fetched immediately. My first version fetched every visible link at once, which on a slow connection starved the one page the visitor had clicked; the queue fixed that. If a page chunk ever fails to load, the router falls back to an ordinary page load.
+
+**12. Accessibility kept from the original.**
 Reduced-motion users get no blanket, no smooth scroll and no walking puppy, and all content is revealed immediately. Dialogs are native `<dialog>` elements, tabs follow the ARIA tab pattern, and form errors are announced and focused.
 
 ## Testing
@@ -172,6 +176,8 @@ npm run test:compare -- /puppies 375 812 900     # scroll-state diff against the
 npm run test:pixels                              # pixel diff of interactive states
 ```
 
+To run them against the deployed site instead of the local build, set `CLONE_URL` first, for example `CLONE_URL=https://teddypups-clone.netlify.app npm run test:smoke`.
+
 ## Deployment
 
 Hosted on Netlify, configured by [`netlify.toml`](netlify.toml):
@@ -181,7 +187,13 @@ Hosted on Netlify, configured by [`netlify.toml`](netlify.toml):
 - One-year immutable caching for fingerprinted assets and fonts
 - `VITE_IMAGE_CDN=netlify` to serve resized images
 
-With the repository connected in Netlify, every push to `main` builds and deploys automatically.
+The current deploy was published from the command line:
+
+```bash
+npx netlify-cli deploy --prod --build
+```
+
+Connecting the repository in the Netlify dashboard makes every push to `main` build and deploy automatically instead.
 
 ## AI tools used
 
@@ -192,6 +204,8 @@ AI coding assistants wrote a large share of this code under my direction: captur
 - Enquiry forms do not send anything unless an endpoint is configured.
 - Puppy listings are a snapshot; there is no CMS or admin behind them.
 - The mascot's animation engine is the reference's compiled code rather than a rewrite.
+- The live site shows a small "Powered by Netlify" badge in the bottom-right corner. Netlify adds it to sites on its free plan; it is not part of this code.
+- An unknown URL shows the 404 poster but is served with HTTP status 200, because the host returns the single-page app for every path.
 
 ## Credits
 

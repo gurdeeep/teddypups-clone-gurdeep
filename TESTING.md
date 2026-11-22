@@ -1,6 +1,6 @@
 # Testing
 
-What was tested, how, and what the results were. Everything below was run on **22 November 2026** against the production build (`npm run build` served by `npm run preview` at `http://localhost:4173`), compared with the live reference at https://puppy.instabizweb.com/.
+What was tested, how, and what the results were. Everything below was run on **22 November 2026**. Sections 1 to 5 were run against the production build (`npm run build` served by `npm run preview` at `http://localhost:4173`), compared with the live reference at https://puppy.instabizweb.com/. Section 6 repeats the main checks against the deployed site at https://teddypups-clone.netlify.app/.
 
 Anything not actually run is listed under [Not yet tested](#not-yet-tested) rather than marked as passed.
 
@@ -15,6 +15,9 @@ Anything not actually run is listed under [Not yet tested](#not-yet-tested) rath
 | Pixel comparison of 14 interactive states       | All within 0.7%; 6 show 0.00%                                                     |
 | Functional checks, 3 engines + 2 phone profiles | 60 of 60 pass; 96 of 96 page loads clean                                          |
 | Lighthouse, 5 pages (local build)               | Accessibility, best practices, SEO: 100. Performance: 89–98 desktop, 49–75 mobile |
+| Live site: functional checks                    | 60 of 60 pass; 96 of 96 page loads clean                                          |
+| Live site: Lighthouse, 5 pages                  | Accessibility, best practices, SEO: 100. Performance: 85–96 desktop, 65–81 mobile |
+| Live site: known differences                    | A "Powered by Netlify" badge added by the host; slower downloads on some networks |
 
 ## 1. Build
 
@@ -188,7 +191,7 @@ For comparison, the reference's home page measured the same way on the same mach
 
 - **Accessibility, Best practices and SEO are 100 on every page**, desktop and mobile.
 - **Desktop performance is on par with the reference** (89 against 90 on the home page).
-- **Mobile performance is the weak spot, and these local numbers are the worst case.** The local server sends every photo at full size, about 3.5 MB on the home page, and Lighthouse's slow-4G simulation charges all of it against the Largest Contentful Paint. The reference avoids this by resizing images on its server. The deployed site does the equivalent through Netlify Image CDN, which the local preview cannot run. **The mobile numbers must be re-measured on the live URL before quoting them.**
+- **Mobile performance is the weak spot, and these local numbers are the worst case.** The local server sends every photo at full size, about 3.5 MB on the home page, and Lighthouse's slow-4G simulation charges all of it against the Largest Contentful Paint. The reference avoids this by resizing images on its server. The deployed site does the equivalent through Netlify Image CDN, which the local preview cannot run. The numbers measured on the live URL are in [section 6](#6-the-live-site).
 - The home page mobile score moved between 49 and 60 across three runs on this machine, so treat single mobile runs as approximate.
 - Both sites deliberately keep a transition blanket over the page for about a second on first load, which costs LCP on each.
 
@@ -199,16 +202,61 @@ For comparison, the reference's home page measured the same way on the same mach
 - Images are requested at display size through the image CDN on Netlify (not measurable locally, see above).
 - The transition blanket is written into the HTML so the first paint is not a blank page.
 
-### Live site
+## 6. The live site
 
-Fill this in after deploying (Chrome DevTools → Lighthouse, private window).
+Deployed to Netlify on 22 November 2026 with `npx netlify-cli deploy --prod --build` and tested at https://teddypups-clone.netlify.app/.
 
-| Page | Mode    | Performance | Accessibility | Best practices | SEO |
-| ---- | ------- | :---------: | :-----------: | :------------: | :-: |
-| `/`  | Mobile  |             |               |                |     |
-| `/`  | Desktop |             |               |                |     |
+### 6.1 Hosting checks
 
-## 6. Manual checklist
+| Check                                                                   | Result                                                                  |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `/`, `/faq`, `/puppies`, `/contact`, `/how-it-works`, `/happy-families` | 200 on a direct request, so deep links and refreshes work               |
+| Unknown URL                                                             | Shows the 404 poster. The HTTP status is 200 (single-page app fallback) |
+| `robots.txt` and `sitemap.xml`                                          | Generated with the live address; the sitemap lists all routes           |
+| Fingerprinted assets                                                    | `Cache-Control: public,max-age=31536000,immutable`                      |
+| Image CDN (`/.netlify/images`)                                          | 200; returns resized WebP to browsers that accept it, AVIF sources too  |
+| Photos on 7 pages, 2 widths, in Chromium, Firefox and WebKit            | 0 broken images, 0 failed image requests                                |
+
+### 6.2 Functional checks
+
+The same suite as section 3, pointed at the live URL (`node tests/smoke.cjs https://teddypups-clone.netlify.app`): **60 of 60 interaction checks pass**, and all 96 page loads (8 pages, 4 widths, 3 engines) have a heading, no sideways scroll, no broken images and a lifted blanket.
+
+Three things turned up on the live site and were dealt with:
+
+- **Navigation was slower than on the reference.** A click had to download the next page before the blanket could lift: 1.5 to 3.4 seconds to settle, against 0.7 to 1.0 on the reference. The app now prefetches the pages linked from what is on screen (`src/lib/usePrefetch.ts`), as the reference does. Measured afterwards, a click a few seconds after load settles in 1.0 to 1.1 seconds on both sites. A click in the first second or two of a cold visit can still take 2 to 4 seconds on a slow connection, because the next page is competing with the first page's photos.
+- **My first prefetch version made things worse.** It fetched every visible link at once, which starved the clicked page on a slow connection, and Firefox and WebKit logged an unhandled error whenever a prefetch was cancelled by leaving the page. Prefetches now go two at a time, failures are caught, and a page chunk that cannot be fetched falls back to an ordinary page load.
+- **Firefox logged "Image corrupt or truncated" for up to six resized photos per run.** This time the files are fine: each source photo and each CDN response was downloaded and verified complete. The message appears when the test leaves a page while photos are still downloading. Re-run with each page allowed to finish loading: 0 messages, 0 broken images.
+
+### 6.3 Comparison with the reference
+
+- **Scroll state, home page at 1440px:** only animations caught mid-frame, as in section 2.1.
+- **Pixel comparison of the 14 interactive states:** two at 0.00%, eleven between 0.09% and 0.87%, and one mobile state at 2.07%. Almost all of the increase over section 2.3 is one thing: the "Powered by Netlify" badge described below, which covers about 170 by 40 pixels in the bottom-right corner.
+
+### 6.4 Lighthouse on the live site
+
+Lighthouse 12, same method as section 5.
+
+| Page                         | Mode    | Performance | Accessibility | Best practices | SEO | LCP   | TBT    | CLS   |
+| ---------------------------- | ------- | :---------: | :-----------: | :------------: | :-: | ----- | ------ | ----- |
+| `/`                          | Desktop |     89      |      100      |      100       | 100 | 1.3 s | 30 ms  | 0.018 |
+| `/puppies`                   | Desktop |     85      |      100      |      100       | 100 | 1.5 s | 0 ms   | 0.012 |
+| `/puppies/maltipoo-max-male` | Desktop |     92      |      100      |      100       | 100 | 1.2 s | 0 ms   | 0     |
+| `/faq`                       | Desktop |     96      |      100      |      100       | 100 | 0.9 s | 0 ms   | 0     |
+| `/contact`                   | Desktop |     95      |      100      |      100       | 100 | 1.0 s | 0 ms   | 0.003 |
+| `/`                          | Mobile  |     67      |      100      |      100       | 100 | 5.4 s | 160 ms | 0     |
+| `/puppies`                   | Mobile  |     65      |      100      |      100       | 100 | 5.5 s | 140 ms | 0     |
+| `/puppies/maltipoo-max-male` | Mobile  |     75      |      100      |      100       | 100 | 4.9 s | 180 ms | 0     |
+| `/faq`                       | Mobile  |     81      |      100      |      100       | 100 | 4.0 s | 40 ms  | 0     |
+| `/contact`                   | Mobile  |     76      |      100      |      100       | 100 | 4.2 s | 30 ms  | 0.056 |
+
+With resized photos the home page's mobile score rose from 49 (local) to 67, and its Largest Contentful Paint fell from 15.4 to 5.4 seconds. The reference's home page scored 72 on mobile and 90 on desktop. Single runs move by several points.
+
+### 6.5 Two differences that come from the host
+
+- **"Powered by Netlify" badge.** Netlify injects a script (`/.netlify/scripts/hud`) into every page of sites on its free plan, which draws a small badge in the bottom-right corner. It is not in this repository or in the build output, and the free plan has no option to hide it. The reference has no badge.
+- **Download speed depends on the network.** From the machine used for testing, files from Netlify arrived at 110 to 190 KB/s, while the reference's host and a general speed test both delivered about 3 MB/s on the same connection. An older Netlify site was equally slow, so this is the route between that connection and Netlify rather than anything in the code. It makes first loads on the live site feel slower than the reference on that network. It has not been measured from other networks.
+
+## 7. Manual checklist
 
 Use this for a final pass by hand. The "Automated" column says whether the item is already covered by the runs above.
 
@@ -226,8 +274,9 @@ Use this for a final pass by hand. The "Automated" column says whether the item 
 | Gallery next / previous, thumbnails, full screen, arrow keys, Escape |    yes    |   [ ]   |
 | Both forms: empty submit shows errors; valid submit confirms         |    yes    |   [ ]   |
 | FAQ: one note open at a time; search highlights and filters          |    yes    |   [ ]   |
-| Refreshing any page does not 404 (live site)                         |    no     |   [ ]   |
-| Photos, fonts and the chat video load (live site)                    |    no     |   [ ]   |
+| Refreshing any page does not 404 (live site)                         |    yes    |   [ ]   |
+| Photos and fonts load (live site)                                    |    yes    |   [ ]   |
+| The chat video on the home page plays (live site)                    |    no     |   [ ]   |
 | Hover effects and the paw-print cursor trail                         |    no     |   [ ]   |
 | Real iPhone (Safari) and real Android phone (Chrome)                 |    no     |   [ ]   |
 
@@ -235,6 +284,7 @@ Use this for a final pass by hand. The "Automated" column says whether the item 
 
 - **Real devices.** Mobile results come from emulation (WebKit with an iPhone profile, Chromium with a Pixel profile), not physical phones.
 - **Safari on macOS and iOS.** WebKit is the same engine but not the same browser build.
-- **The live deployment.** All results here are from the local production build. After deploying, repeat the "live site" rows of the manual checklist and re-run Lighthouse on the live URL. In particular, the image CDN (`VITE_IMAGE_CDN`) only runs on Netlify, so resized images have not been exercised yet.
+- **The live site from other networks and regions.** Section 6 was run from one machine on one connection, where downloads from Netlify were slow. Load times elsewhere are not known.
+- **The full comparison suite on the live site.** The scroll-state comparison was repeated for the home page only, not all 15 combinations of section 2.1.
 - **Hover-only details** such as card hover effects and the cursor paw trail. They come from the reference's stylesheet and a direct port of its canvas code, but no test here exercises them.
 - **The enquiry endpoint.** The optional `VITE_ENQUIRY_ENDPOINT` path was not exercised against a real server.
