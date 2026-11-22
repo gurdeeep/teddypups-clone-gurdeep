@@ -29,8 +29,9 @@ interface Options {
 
 /** Image attributes for a local file: just `src`, or `src` + `srcSet` when the CDN is on. */
 export function responsive(src: string, { sizes, width, quality = 75 }: Options = {}) {
-  // AVIF files are already small; SVGs are vectors. Neither is worth a round trip.
-  if (!ENABLED || !src.startsWith('/') || /\.(svg|avif)$/i.test(src)) return { src, sizes };
+  // SVGs are vectors and need no resizing. AVIF files do go through the CDN: it converts them for
+  // browsers that cannot decode AVIF (Safari before 16), as the reference's optimizer does.
+  if (!ENABLED || !src.startsWith('/') || /\.svg$/i.test(src)) return { src, sizes };
   if (width && !sizes) {
     const once = atLeast(width);
     const twice = atLeast(width * 2);
