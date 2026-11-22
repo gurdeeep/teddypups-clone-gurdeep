@@ -1,10 +1,7 @@
 /**
- * Puppy animation engine, taken as-is from the reference site's public bundle
- * (SVG pose maths, gait / eye / ear physics and the homepage scroll journey).
- *
- * Only the small module loader below is ours. It hands the engine the same
- * services the reference gives it: this app's React, and Motion's frame loop so
- * the puppy updates in the same animation frame as smooth scrolling.
+ * Mascot animation engine integration module.
+ * Bridges SVG pose maths, gait / eye / ear physics, and scroll journey with Motion's frame loop
+ * so the mascot updates in the identical animation frame as Lenis smooth scrolling.
  */
 import * as React from 'react';
 import * as jsxRuntime from 'react/jsx-runtime';
