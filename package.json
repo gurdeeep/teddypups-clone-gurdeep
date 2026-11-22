@@ -7,8 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"*.{ts,json,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"tests/*.cjs\" \"*.{ts,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
+    "test:smoke": "node tests/smoke.cjs",
+    "test:compare": "node tests/compare-state.cjs",
+    "test:pixels": "node tests/compare-pixels.cjs"
   },
   "dependencies": {
     "html-react-parser": "^5.2.7",
@@ -22,6 +25,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
+    "playwright": "^1.65.1",
     "prettier": "^3.10.1",
     "typescript": "^5.9.3",
     "vite": "^7.1.12"

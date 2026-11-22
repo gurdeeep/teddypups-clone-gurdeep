@@ -12,7 +12,7 @@ Anything not actually run is listed under [Not yet tested](#not-yet-tested) rath
 | Console errors and failed requests              | None on any page, in any tested browser                                           |
 | Layout and scroll state vs the reference        | No differences in 15 page and viewport combinations                               |
 | Walking puppy vs the reference                  | 46 of 47 scroll steps identical; 1 step differed by 1px mid-movement              |
-| Pixel comparison of 14 interactive states       | All within 0.25%; 5 are pixel-identical                                           |
+| Pixel comparison of 14 interactive states       | All within 0.7%; 6 show 0.00%                                                     |
 | Functional checks, 3 engines + 2 phone profiles | 60 of 60 pass; 96 of 96 page loads clean                                          |
 | Lighthouse, 5 pages (local build)               | Accessibility, best practices, SEO: 100. Performance: 89–98 desktop, 49–75 mobile |
 
@@ -26,7 +26,15 @@ Runs `tsc -b` (strict mode) and then `vite build`. Both complete with no errors 
 
 ## 2. Automated comparison with the reference
 
-These checks drive a headless Chromium (Playwright) through both sites with identical input.
+These checks drive a headless Chromium (Playwright) through both sites with identical input. The scripts are in [`tests/`](tests/):
+
+```bash
+npx playwright install chromium firefox webkit   # once
+npm run preview                                  # serve the build, then in another terminal:
+npm run test:smoke                               # functional checks, three engines + two phone profiles
+npm run test:compare -- /puppies 375 812 900     # scroll-state diff against the reference
+npm run test:pixels                              # pixel diff of interactive states
+```
 
 ### 2.1 Layout and scroll state
 
@@ -66,22 +74,22 @@ Each state was set up on both sites, screenshotted, and compared pixel by pixel 
 
 | State                                   | Viewport | Pixels that differ |
 | --------------------------------------- | -------- | -----------------: |
-| FAQ, first note open                    | 1440     |              0.10% |
-| FAQ, searching "deliver"                | 1440     |              0.02% |
-| Family photo viewer open                | 1440     |              0.02% |
+| FAQ, first note open                    | 1440     |              0.14% |
+| FAQ, searching "deliver"                | 1440     |              0.03% |
+| Family photo viewer open                | 1440     |              0.68% |
 | Contact form, validation errors showing | 1440     |              0.00% |
-| Puppies, filtered by Maltipoo           | 1440     |              0.08% |
-| Puppy profile, top of page              | 1440     |              0.00% |
+| Puppies, filtered by Maltipoo           | 1440     |              0.03% |
+| Puppy profile, top of page              | 1440     |              0.01% |
 | Profile enquiry form, validation errors | 1440     |              0.00% |
 | Profile gallery, full screen            | 1440     |              0.00% |
 | Mobile menu open                        | 375      |              0.00% |
 | How it works, "Imported" tab            | 1440     |              0.00% |
-| 404 page                                | 1440     |              0.03% |
-| Contact, scrolled                       | 375      |              0.09% |
-| Puppies, scrolled                       | 768      |              0.23% |
-| Gone home                               | 1024     |              0.04% |
+| 404 page                                | 1440     |              0.00% |
+| Contact, scrolled                       | 375      |              0.06% |
+| Puppies, scrolled                       | 768      |              0.41% |
+| Gone home                               | 1024     |              0.02% |
 
-The non-zero rows are the animated mascot caught at a different point in its blink or head tilt, and photo compression (the reference serves resized copies).
+The non-zero rows are the animated mascot caught at a different point in its blink or head tilt, scroll-reveal animations in flight, and photo resampling: the reference serves a server-resized copy of each photo while the local build scales the original in the browser, which is why the photo viewer is the largest at 0.68%. Values move by a few hundredths between runs.
 
 ## 3. Functional checks
 

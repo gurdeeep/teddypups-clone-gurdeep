@@ -36,6 +36,7 @@ Shared across pages: sticky header that hides on scroll down, mobile menu, page-
 | **Motion**            | The reference uses it. Using the same springs, layout animations and frame loop was the only reliable way to match its movement. |
 | **Lenis**             | The reference's smooth-scroll library; same settings (`lerp: 0.1`, `wheelMultiplier: 0.85`).                                     |
 | **html-react-parser** | Turns the saved page markup into React elements and lets me swap individual elements for live components.                        |
+| **Playwright**        | Drives the cross-browser smoke tests and the scripts that compare the build with the reference (`tests/`).                       |
 | **Prettier**          | One formatting style across the codebase (`npm run format`).                                                                     |
 | **Netlify**           | Static hosting with Git-based deploys, SPA redirects and an image CDN.                                                           |
 
@@ -59,6 +60,7 @@ The reference is a server-rendered Next.js site. I do not have its source, so th
 ├── netlify.toml             Build command, SPA redirect, cache headers, image CDN switch
 ├── vite.config.ts
 ├── docs/                    README screenshots
+├── tests/                   Playwright scripts: smoke tests and comparison against the reference
 ├── public/
 │   ├── media/               Puppy and family photos, videos, posters
 │   ├── brand/, cursor/      Logo and custom cursor
@@ -149,15 +151,26 @@ A single-page app has one HTML file, so `/faq` does not exist on the server. `ne
 **8. Image weight.**
 Next.js resizes images on the server; a static build serves the originals, which made the home page about 3.5 MB. On Netlify the app requests resized variants from Netlify Image CDN through `srcset` (`src/lib/image.ts`), using each image's original `sizes` hint. It is switched on by `VITE_IMAGE_CDN` in `netlify.toml`, so local builds still work without the CDN.
 
-**9. Bundle size.**
+**9. Photos that had been cut off.**
+Firefox logged "image corrupt or truncated" during cross-browser testing. Eleven JPEGs had been truncated when the site was first captured (one held 20 KB of a 225 KB file) and were rendering partly grey. Chrome had displayed them without complaint, so only testing in a second engine exposed it. I re-downloaded them and verified each file ends with a JPEG end marker.
+
+**10. Bundle size.**
 All page templates were originally bundled together (2.3 MB of JavaScript). Each template is now a separate chunk loaded on first visit, and preloaded while the transition blanket is closing so navigation does not wait on the network.
 
-**10. Accessibility kept from the original.**
+**11. Accessibility kept from the original.**
 Reduced-motion users get no blanket, no smooth scroll and no walking puppy, and all content is revealed immediately. Dialogs are native `<dialog>` elements, tabs follow the ARIA tab pattern, and form errors are announced and focused.
 
 ## Testing
 
-Automated comparison against the reference, functional checks, cross-browser runs and Lighthouse results are recorded in [TESTING.md](TESTING.md).
+Automated comparison against the reference, functional checks in three browser engines, and Lighthouse results are recorded in [TESTING.md](TESTING.md). The scripts that produced them are in [`tests/`](tests/):
+
+```bash
+npx playwright install chromium firefox webkit   # once
+npm run preview                                  # serve the build, then in another terminal:
+npm run test:smoke                               # functional checks, three engines + two phone profiles
+npm run test:compare -- /puppies 375 812 900     # scroll-state diff against the reference
+npm run test:pixels                              # pixel diff of interactive states
+```
 
 ## Deployment
 
