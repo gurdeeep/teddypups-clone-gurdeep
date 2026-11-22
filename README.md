@@ -178,7 +178,7 @@ AI coding assistants wrote a large share of this code under my direction: captur
 
 - Enquiry forms do not send anything unless an endpoint is configured.
 - Puppy listings are a snapshot; there is no CMS or admin behind them.
-- No `sitemap.xml`.
+
 - The mascot's animation engine is the reference's compiled code rather than a rewrite.
 
 ## Credits
