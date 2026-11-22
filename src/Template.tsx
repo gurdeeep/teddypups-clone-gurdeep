@@ -1,79 +1,92 @@
-import {createElement} from 'react';
-import type {CSSProperties, ReactNode} from 'react';
-import parse, {attributesToProps, domToReact, Element} from 'html-react-parser';
-import type {DOMNode, HTMLReactParserOptions} from 'html-react-parser';
-import {Catalogue, EnquiryForm, FaqNote, Gallery, WHATSAPP} from './components';
-import type {Media,Puppy} from './types';
-import puppyData from './data/puppies.json';
-import families from './data/families.json';
-import homeFamilies from './data/home-families.json';
-import faqNotes from './data/faq.json';
+import { createElement } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import parse, { attributesToProps, domToReact, Element } from 'html-react-parser';
+import type { DOMNode, HTMLReactParserOptions } from 'html-react-parser';
+import { PupBuddy } from './components/PupBuddy';
+import type { PupFacing, PupPose } from './motion/reference-motion';
 
-const puppies=puppyData as unknown as Puppy[];
-const has=(el:Element,cls:string)=>el.attribs.class?.split(' ').includes(cls);
-function text(node:DOMNode):string {if('data' in node)return node.data;if('children' in node)return node.children.map(n=>text(n as DOMNode)).join('');return '';}
-function find(el:Element,fn:(n:Element)=>boolean):Element|undefined {for(const child of el.children){if(child instanceof Element){if(fn(child))return child;const match=find(child,fn);if(match)return match;}}}
+const VOID_TAGS = ['img', 'input', 'br', 'hr', 'source', 'area', 'wbr'];
 
-export interface TemplateProps {
-  html:string; path:string; query:string; curtain?:string; search:string;
-  onSearch:(value:string)=>void; onQuery:(p:URLSearchParams)=>void;
-  onOpen:(items:Media[],index:number,name:string)=>void;
+/** What a slot function gets for each element in a template. */
+export interface Node {
+  el: Element;
+  /** The element's attributes as React props. */
+  props: Record<string, unknown>;
+  has: (className: string) => boolean;
+  /** The element's children, converted to React (slots still apply inside). */
+  children: () => ReactNode;
+  /** The element itself, with extra props merged in. */
+  render: (extra?: Record<string, unknown>) => ReactNode;
+  /** Convert any other nodes with the same slots applied. */
+  convert: (nodes: DOMNode[]) => ReactNode;
 }
 
-/** Original public markup and SVG artwork, rendered as React elements.
- * Stateful sections are replaced by typed React components below.
- * No scripts from the reference website are loaded or executed.
+/** Return a React node to replace the element, or undefined to keep it as written. */
+export type Slot = (node: Node) => ReactNode | undefined;
+
+export const hasClass = (el: Element, className: string) => !!el.attribs.class?.split(/\s+/).includes(className);
+
+export function textOf(node: DOMNode): string {
+  if ('data' in node) return node.data;
+  if ('children' in node) return (node.children as DOMNode[]).map(textOf).join('');
+  return '';
+}
+
+export function findElement(el: Element, test: (candidate: Element) => boolean): Element | undefined {
+  for (const child of el.children) {
+    if (!(child instanceof Element)) continue;
+    if (test(child)) return child;
+    const match = findElement(child, test);
+    if (match) return match;
+  }
+}
+
+/** Works out which mascot a `.pup-buddy` block in a template is, then renders the live component. */
+function buddy(el: Element) {
+  const parent = el.parent instanceof Element && 'data-pup-stop' in el.parent.attribs ? el.parent : null;
+  const label = findElement(el, (child) => child.name === 'svg')?.attribs['aria-label'];
+  const className = (el.attribs.class ?? '').replace(/^pup-buddy ?/, '');
+  let pose = parent?.attribs['data-pose'] as PupPose | undefined;
+  if (!pose) {
+    if (/peeking/.test(label ?? '') || className.includes('tp-booth__teddy')) pose = 'peek';
+    else if (/ready to play/.test(label ?? '')) pose = 'bow';
+    else pose = 'sit';
+  }
+  return (
+    <PupBuddy
+      pose={pose}
+      facing={(el.attribs['data-facing'] as PupFacing) ?? 'right'}
+      act={!parent && /which way you pick/.test(label ?? '') ? 'tilt' : undefined}
+      label={label}
+      className={className}
+      style={attributesToProps(el.attribs).style as CSSProperties | undefined}
+      asStop={!!parent}
+    />
+  );
+}
+
+/**
+ * Turns a saved HTML template into React elements.
+ *
+ * Most of each page is static markup, so it is rendered as written. The `slot`
+ * callback is asked about every element and can swap in a real component
+ * (a form, a gallery, the filter list) or attach handlers and state.
  */
-export function Template({html,path,query,curtain,search,onSearch,onQuery,onOpen}:TemplateProps) {
-  const puppy=puppies.find(p=>path===`/puppies/${p.slug}`);
-  const options:HTMLReactParserOptions={replace(node){
-    if(!(node instanceof Element))return;
-    const el=node;
-    const props=attributesToProps(el.attribs);
-    const children=()=>domToReact(el.children as DOMNode[],options);
-    const render=(extra:Record<string,unknown>={})=>createElement(el.name,{...props,...extra},...(['img','input','br','hr','source','area','wbr'].includes(el.name)?[]:[children()]));
-    if(el.name==='script'||el.name==='template')return <></>;
-    // The live React journey supplies these; omit inert server-rendered copies.
-    if(has(el,'pup-layer')||has(el,'pup-probe')||has(el,'pup-prints'))return <></>;
-    if(has(el,'tp-curtain'))return render({'data-state':curtain||'idle'});
-    if(el.name==='header'&&el.attribs.id==='site-header')return render({'data-home':path==='/'?'true':'false'});
-    if(el.name==='a'&&(has(el,'tp-nav-link')||has(el,'tp-menu-link'))){const active=path===el.attribs.href||(el.attribs.href==='/puppies'&&!!puppy);return render({'data-active':String(active),'aria-current':active?'page':undefined});}
-    if(el.name==='button'&&el.attribs['aria-haspopup']==='dialog')return render({'aria-label':'Open menu',onClick:()=>{const d=document.querySelector<HTMLDialogElement>('dialog[aria-label="Site menu"]');d?.showModal();}});
-    if(el.name==='button'&&text(el)==='Close')return render({onClick:()=>{const d=document.querySelector<HTMLDialogElement>('dialog[aria-label="Site menu"]');if(!d)return;d.dataset.closing='true';setTimeout(()=>{d.close();delete d.dataset.closing;},420);}});
-    if(el.attribs['data-component']==='gallery'&&puppy)return <Gallery puppy={puppy} onOpen={onOpen}/>;
-    if(el.attribs['data-component']==='catalogue'){
-      const cards=new Map<string,ReactNode>();
-      for(const li of el.children){if(li instanceof Element){const link=find(li,n=>n.name==='a');const slug=link?.attribs.href?.split('/').pop();if(slug&&link)cards.set(slug,domToReact([link],options));}}
-      return <Catalogue puppies={puppies.filter(p=>p.status==='available')} cards={cards} query={query} onQuery={onQuery}/>;
-    }
-    if(el.name==='form')return <EnquiryForm className={el.attribs.class} puppy={puppy}>{children()}</EnquiryForm>;
-    if(el.name==='input'&&el.attribs.type==='search'&&path==='/faq')return createElement('input',{...props,value:search,onChange:(e:React.ChangeEvent<HTMLInputElement>)=>onSearch(e.target.value)});
-    if(has(el,'tp-note')){
-      if(search&&!text(el).toLowerCase().includes(search.toLowerCase()))return <></>;
-      const q=find(el,n=>has(n,'font-plush-text'));
-      const answer=find(el,n=>has(n,'tp-note__flap'));
-      return <FaqNote question={q?domToReact([q],options):''} style={props.style as CSSProperties}>{answer?domToReact(answer.children as DOMNode[],options):''}</FaqNote>;
-    }
-    if(el.name==='p'&&path==='/faq'&&text(el).includes('notes on the board')){const count=faqNotes.filter(n=>n.text.toLowerCase().includes(search.toLowerCase())).length;return <p {...props}>{search?`${count} ${count===1?'note':'notes'} found`:'9 notes on the board'}</p>;}
-    if(el.name==='ul'&&path==='/faq'&&el.children.some(n=>n instanceof Element&&has(n,'tp-note'))){
-      const matches=el.children.filter(n=>n instanceof Element&&has(n,'tp-note')&&text(n).toLowerCase().includes(search.toLowerCase()));
-      return <>{render()}{!matches.length&&<div className="tp-note tp-note--empty"><p>No note about “{search}” yet.</p><p className="mt-3"><a className="link-ink" href={WHATSAPP}>Ask us on WhatsApp</a> and we'll answer.</p></div>}</>;
-    }
-    if(el.name==='button'&&el.attribs['aria-label']?.startsWith('Open photo ')){
-      const match=el.attribs['aria-label'].match(/Open photo (\d+)/);
-      const items=(path==='/'?homeFamilies:families) as Media[];
-      return render({onClick:()=>onOpen(items,Number(match?.[1]||1)-1,'Happy families')});
-    }
-    if(el.attribs.role==='tab'){
-      const imported=new URLSearchParams(query).get('journey')==='imported';
-      const active=el.attribs.id===`tab-${imported?'imported':'local'}`;
-      return render({'aria-selected':active,tabIndex:active?0:-1,onClick:()=>{const p=new URLSearchParams(query);if(el.attribs.id==='tab-imported')p.set('journey','imported');else p.delete('journey');onQuery(p);},onKeyDown:(e:React.KeyboardEvent)=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();const p=new URLSearchParams(query);if(imported)p.delete('journey');else p.set('journey','imported');onQuery(p);document.getElementById(imported?'tab-local':'tab-imported')?.focus();}}});
-    }
-    if(el.attribs.role==='tabpanel'){
-      const imported=new URLSearchParams(query).get('journey')==='imported';
-      return render({hidden:el.attribs.id!==`panel-${imported?'imported':'local'}`});
-    }
-    if(has(el,'tp-switch'))return render({style:{...(props.style as CSSProperties),'--at':new URLSearchParams(query).get('journey')==='imported'?1:0}});
-  }};
-  return <>{parse(html,options)}</>;
+export function renderTemplate(html: string, slot?: Slot): ReactNode {
+  const options: HTMLReactParserOptions = {
+    replace(domNode) {
+      if (!(domNode instanceof Element)) return;
+      const el = domNode;
+      if (el.name === 'script' || el.name === 'template') return <></>;
+      const props = attributesToProps(el.attribs) as Record<string, unknown>;
+      const convert = (nodes: DOMNode[]) => domToReact(nodes, options);
+      const children = () => convert(el.children as DOMNode[]);
+      const render = (extra: Record<string, unknown> = {}) =>
+        createElement(el.name, { ...props, ...extra }, ...(VOID_TAGS.includes(el.name) ? [] : [children()]));
+      const replaced = slot?.({ el, props, has: (className) => hasClass(el, className), children, render, convert });
+      if (replaced !== undefined) return <>{replaced}</>;
+      if (hasClass(el, 'pup-buddy')) return buddy(el);
+    },
+  };
+  return parse(html, options);
 }
