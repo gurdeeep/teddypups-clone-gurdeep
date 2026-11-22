@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
+import { responsive } from '../lib/image';
 import type { Media } from '../types';
 
 interface MediaImageProps {
   media: Media;
   alt?: string;
   className?: string;
+  /** How wide the image is displayed, as a CSS `sizes` value. */
+  sizes?: string;
+  quality?: number;
   eager?: boolean;
   /** `fill` covers the parent box; `natural` keeps the photo's own aspect ratio. */
   layout?: 'fill' | 'natural';
@@ -20,7 +24,17 @@ const focal = (media: Media) => `${(media.focalX * 100).toFixed(1)}% ${(media.fo
  * Mirrors the markup of the reference's image component (focal-point cropping,
  * dominant colour, tiny blur preview), minus its server-side resizing.
  */
-export function MediaImage({ media, alt, className, eager, layout = 'fill', style, onLoad }: MediaImageProps) {
+export function MediaImage({
+  media,
+  alt,
+  className,
+  sizes,
+  quality,
+  eager,
+  layout = 'fill',
+  style,
+  onLoad,
+}: MediaImageProps) {
   const [loaded, setLoaded] = useState(false);
   const placeholder: CSSProperties =
     !loaded && media.blurDataUrl
@@ -52,7 +66,7 @@ export function MediaImage({ media, alt, className, eager, layout = 'fill', styl
       width={layout === 'natural' ? media.width : undefined}
       height={layout === 'natural' ? media.height : undefined}
       style={{ ...box, color: 'transparent', backgroundColor: media.color, ...placeholder, ...style }}
-      src={media.url}
+      {...responsive(media.url, { sizes, quality })}
       ref={(image) => {
         // Cached images can finish before React attaches onLoad.
         if (image?.complete && image.naturalWidth && !loaded) setLoaded(true);

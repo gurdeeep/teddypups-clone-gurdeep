@@ -4,6 +4,8 @@ import type { Media } from '../types';
 import { MediaImage } from './MediaImage';
 import { NeighbourPreload, ViewerPhoto } from './PhotoViewer';
 
+const PAGE_SIZES = '(min-width: 1024px) 55vw, 92vw';
+
 /**
  * Photo / video gallery on a puppy profile, styled as a storybook page.
  * Changing photo "turns the page" (a clip-path wipe with a slight 3D tilt);
@@ -74,7 +76,7 @@ export function PuppyGallery({ name, media }: { name: string; media: Media[] }) 
                 aria-label={current.alt}
               />
             ) : (
-              <MediaImage media={current} eager={index === 0} />
+              <MediaImage media={current} sizes={PAGE_SIZES} quality={85} eager={index === 0} />
             )}
           </motion.button>
         </AnimatePresence>
@@ -119,7 +121,7 @@ export function PuppyGallery({ name, media }: { name: string; media: Media[] }) 
                   aria-current={i === index}
                   className={`relative block h-24 w-20 overflow-hidden rounded-[0.9rem] border-[3px] transition-transform duration-300 md:h-28 md:w-24 ${i === index ? '-rotate-3 -translate-y-1 border-toffee-deep' : 'border-cocoa/30 hover:-rotate-2 hover:border-cocoa'}`}
                 >
-                  {thumb && <MediaImage media={thumb} alt="" />}
+                  {thumb && <MediaImage media={thumb} sizes="96px" alt="" />}
                   {item.kind === 'video' && (
                     <span className="absolute inset-0 grid place-items-center bg-cocoa/30 text-lg text-milk">▶</span>
                   )}
@@ -174,7 +176,7 @@ export function PuppyGallery({ name, media }: { name: string; media: Media[] }) 
                     className="size-full object-contain"
                   />
                 ) : (
-                  <ViewerPhoto media={current} />
+                  <ViewerPhoto media={current} sizes={PAGE_SIZES} quality={85} />
                 )}
               </motion.div>
               <NeighbourPreload photos={media} at={index} />

@@ -173,7 +173,7 @@ export function HeroLineup({ friends }: { friends: Puppy[] }) {
                 onBlur={unhover(seat)}
               >
                 <span className="tp-lineup__photo">
-                  <MediaImage key={pup.id} media={pup.cover} eager />
+                  <MediaImage key={pup.id} media={pup.cover} sizes="11rem" eager />
                 </span>
               </a>
             </li>
@@ -195,7 +195,7 @@ export function HeroLineup({ friends }: { friends: Puppy[] }) {
       </ul>
       {waiting !== null && (
         <span ref={wings} aria-hidden className="tp-lineup__wings" data-for={waiting}>
-          <MediaImage media={friends[waiting].cover} alt="" eager />
+          <MediaImage media={friends[waiting].cover} sizes="11rem" alt="" eager />
         </span>
       )}
     </>

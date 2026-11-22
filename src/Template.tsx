@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import parse, { attributesToProps, domToReact, Element } from 'html-react-parser';
 import type { DOMNode, HTMLReactParserOptions } from 'html-react-parser';
 import { PupBuddy } from './components/PupBuddy';
+import { responsive } from './lib/image';
 import type { PupFacing, PupPose } from './motion/reference-motion';
 
 const VOID_TAGS = ['img', 'input', 'br', 'hr', 'source', 'area', 'wbr'];
@@ -86,6 +87,13 @@ export function renderTemplate(html: string, slot?: Slot): ReactNode {
       const replaced = slot?.({ el, props, has: (className) => hasClass(el, className), children, render, convert });
       if (replaced !== undefined) return <>{replaced}</>;
       if (hasClass(el, 'pup-buddy')) return buddy(el);
+      if (el.name === 'img' && el.attribs.src)
+        return render(
+          responsive(el.attribs.src, {
+            sizes: el.attribs.sizes,
+            width: el.attribs.width ? Number(el.attribs.width) : undefined,
+          }),
+        );
     },
   };
   return parse(html, options);

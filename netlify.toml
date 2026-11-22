@@ -6,6 +6,8 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # Serve photos through Netlify Image CDN (resized, modern formats). Remove to use the original files.
+  VITE_IMAGE_CDN = "netlify"
 
 # Single-page app: every route is rendered by index.html in the browser, so any
 # path that is not a real file (for example /faq or /puppies/copper-male) must

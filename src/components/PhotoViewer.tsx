@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { responsive } from '../lib/image';
 import type { Media } from '../types';
 import { MediaImage } from './MediaImage';
 
 const FILL: CSSProperties = { position: 'absolute', height: '100%', width: '100%', inset: 0, color: 'transparent' };
 
 /** One full-screen photo: the blurred preview first, then the sharp file fades in over it. */
-export function ViewerPhoto({ media }: { media: Media }) {
+export function ViewerPhoto({ media, sizes, quality = 75 }: { media: Media; sizes?: string; quality?: number }) {
   const [sharp, setSharp] = useState(false);
   return (
     <>
@@ -15,11 +16,13 @@ export function ViewerPhoto({ media }: { media: Media }) {
         media={media}
         alt=""
         eager
+        sizes={sizes}
+        quality={quality}
         className={sharp ? 'tp-viewer__first tp-viewer__first--done' : 'tp-viewer__first'}
         style={{ objectFit: 'contain', objectPosition: '50% 50%', backgroundColor: 'transparent' }}
       />
       <img
-        src={media.url}
+        {...responsive(media.url, { sizes: '100vw', quality })}
         alt={media.alt}
         loading="eager"
         decoding="async"
@@ -85,7 +88,7 @@ const slide = {
  * Returns `open(index)` plus the dialog element to render once on the page.
  * Arrow keys, the Previous / Next buttons and horizontal drags all page through.
  */
-export function usePhotoViewer(photos: Media[]) {
+export function usePhotoViewer(photos: Media[], sizes?: string) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [index, setIndex] = useState<number | null>(null);
   const [direction, setDirection] = useState(1);
@@ -158,7 +161,7 @@ export function usePhotoViewer(photos: Media[]) {
                   else if (info.offset.x > 80) go(index - 1, -1);
                 }}
               >
-                <ViewerPhoto media={photo} />
+                <ViewerPhoto media={photo} sizes={sizes} />
               </motion.div>
             </AnimatePresence>
             <NeighbourPreload photos={photos} at={index} />

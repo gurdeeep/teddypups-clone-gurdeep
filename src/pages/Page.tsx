@@ -41,7 +41,12 @@ export function Page({ pathname }: { pathname: string }) {
   const isHome = pathname === '/';
   const puppy = puppies.find((pup) => pathname === `/puppies/${pup.slug}`);
   const photos = isHome ? homeFamilies : families;
-  const { open, viewer } = usePhotoViewer(photos);
+  const { open, viewer } = usePhotoViewer(
+    photos,
+    isHome
+      ? '(min-width: 1024px) 18vw, (min-width: 640px) 28vw, 42vw'
+      : '(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 45vw',
+  );
 
   const content = useMemo(() => {
     if (!html) return null;
