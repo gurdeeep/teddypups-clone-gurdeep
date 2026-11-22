@@ -4,7 +4,7 @@ A high-fidelity, pixel-perfect clone of [puppy.instabizweb.com](https://puppy.in
 
 - **Live Deployed Site:** [https://teddypups-clone.netlify.app/](https://teddypups-clone.netlify.app/)
 - **Reference Website:** [https://puppy.instabizweb.com/](https://puppy.instabizweb.com/)
-- **GitHub Repository:** [https://github.com/gurdeeep/teddypups-clone](https://github.com/gurdeeep/teddypups-clone)
+- **GitHub Repository:** [https://github.com/gurdeeep/teddypups-clone-gurdeep](https://github.com/gurdeeep/teddypups-clone-gurdeep)
 
 | Desktop View (1440px)                          | Mobile View (390px)                          |
 | ---------------------------------------------- | -------------------------------------------- |
@@ -120,7 +120,7 @@ Requires **Node.js 20+** or **22+**.
 
 ```bash
 # Clone the repository
-git clone https://github.com/gurdeeep/teddypups-clone.git
+git clone https://github.com/gurdeeep/teddypups-clone-gurdeep.git
 cd teddypups-clone
 
 # Install dependencies
