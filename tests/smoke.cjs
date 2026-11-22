@@ -1,7 +1,7 @@
 // Cross-browser smoke test of the production build (Chromium, Firefox, WebKit, two phone profiles).
-// usage: node tests/smoke.cjs [baseUrl]
+// usage: node tests/smoke.cjs [baseUrl]   (or set CLONE_URL)
 const { chromium, firefox, webkit, devices } = require('playwright');
-const base = process.argv[2] || 'http://localhost:4173';
+const base = (process.argv[2] || process.env.CLONE_URL || 'http://localhost:4173').replace(/\/$/, '');
 const PAGES = [
   '/',
   '/puppies',
@@ -33,7 +33,12 @@ async function layout(browserType, name) {
     let missing = 0;
     for (const p of PAGES) {
       await page.goto(base + p, { waitUntil: 'load' });
-      await page.waitForTimeout(1500);
+      // The blanket lifts about a second after the app mounts; over a real network that can be
+      // later than a fixed delay, so wait for it (a blanket that never lifts still fails below).
+      await page
+        .waitForFunction(() => document.querySelector('.tp-curtain')?.dataset.state === 'idle', null, { timeout: 8000 })
+        .catch(() => {});
+      await page.waitForTimeout(500);
       const m = await page.evaluate(() => ({
         over: document.documentElement.scrollWidth > innerWidth + 1,
         h1: !!document.querySelector('h1')?.textContent.trim(),
@@ -72,6 +77,13 @@ async function interactions(browserType, name, contextOptions) {
     await page.waitForTimeout(1600);
   };
 
+  // After a link click: wait for the route to change (the next page's chunk may still be
+  // downloading on a live site), then for the blanket to lift.
+  const arrive = async (p) => {
+    await page.waitForURL((url) => url.pathname === p, { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(1200);
+  };
+
   if (mobile) {
     await check('mobile menu opens, closes, navigates', async () => {
       await go('/');
@@ -84,7 +96,7 @@ async function interactions(browserType, name, contextOptions) {
       await page.locator('button[aria-haspopup=dialog]').click();
       await page.waitForTimeout(600);
       await page.locator('dialog.tp-menu a[href="/faq"]').click();
-      await page.waitForTimeout(1800);
+      await arrive('/faq');
       return open && closed && page.url().endsWith('/faq');
     });
     await check('WhatsApp / Call bar visible', async () => page.locator('[data-whatsapp-bar]').isVisible());
@@ -92,7 +104,7 @@ async function interactions(browserType, name, contextOptions) {
     await check('nav link navigates with transition', async () => {
       await go('/');
       await page.locator('header a.tp-nav-link[href="/faq"]').click();
-      await page.waitForTimeout(1800);
+      await arrive('/faq');
       return page.url().endsWith('/faq') && (await page.evaluate(() => scrollY)) === 0;
     });
     await check('header hides on scroll down, returns on scroll up', async () => {

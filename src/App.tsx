@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import { MotionConfig } from 'motion/react';
 import { pages, push, usePathname } from './lib/router';
 import { useDocumentMeta } from './lib/useDocumentMeta';
+import { usePrefetch } from './lib/usePrefetch';
 import { useReveal } from './lib/useReveal';
 import { useScrollEffects } from './lib/useScrollEffects';
 import { Page } from './pages/Page';
@@ -68,6 +69,7 @@ export function App() {
   useDocumentMeta(pathname, pages[pathname]);
   useScrollReset(pathname);
   useClientLinks();
+  usePrefetch(pathname);
   useReveal(pathname);
   useScrollEffects(pathname);
 

@@ -45,7 +45,11 @@ const subscribe = (listener: () => void) => {
 };
 
 addEventListener('popstate', async () => {
-  await preloadPage(location.pathname);
+  try {
+    await preloadPage(location.pathname);
+  } catch {
+    return location.reload(); // the chunk could not be fetched: let the browser load the page
+  }
   emit();
 });
 
@@ -55,7 +59,13 @@ export const useSearch = () => useSyncExternalStore(subscribe, () => location.se
 /** Navigate to a same-origin URL once its template is ready. */
 export async function push(url: string) {
   const target = new URL(url, location.href);
-  await preloadPage(target.pathname);
+  try {
+    await preloadPage(target.pathname);
+  } catch {
+    // The page's chunk could not be fetched (offline blip, or a new deploy replaced it):
+    // fall back to an ordinary page load rather than leaving the visitor where they were.
+    return location.assign(target.href);
+  }
   history.pushState(null, '', target.pathname + target.search + target.hash);
   emit();
 }

@@ -101,7 +101,7 @@ export function RouteCurtain() {
       event.preventDefault();
       event.stopPropagation();
       keyboard.current = event.detail === 0;
-      void preloadPage(url.pathname);
+      preloadPage(url.pathname).catch(() => {}); // push() handles a failed load
       dispatchEvent(new Event('tp:navigate'));
       const state = element.dataset.state;
       pending.current = url.href;
